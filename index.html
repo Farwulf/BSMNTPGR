@@ -271,9 +271,10 @@
         let activePayload = null;
 
         const systemRegistry = {
-            "11": { variant: "slider", alert_type: "Emergency", headline: "🚨 EMERGENCY ALERT", message: "Immediate crisis response required upstairs.", urgency_level: "high" },
-            "22": { variant: "hold", color: "#f97316", alert_type: "Food", headline: "🍔 FOOD DEPLOYED", message: "Kitchen deployment complete. Rations available.", urgency_level: "medium" },
-            "33": { variant: "hold", color: "#22c55e", alert_type: "Casual", headline: "👋 REQUEST SYNC", message: "No urgency. Head up when context switch permits.", urgency_level: "low" }
+            "666": { variant: "slider", alert_type: "Need Something", headline: "Need Your Help", message: "Please Help", urgency_level: "high" },
+            "2213": { variant: "hold", color: "#f97316", alert_type: "Food", headline: "🍔 FOOD DEPLOYED", message: "Kitchen deployment complete. Rations available.", urgency_level: "medium" },
+            "0000": { variant: "hold", color: "#22c55e", alert_type: "Casual", headline: "👋 REQUEST SYNC", message: "No urgency. Head up when context switch permits.", urgency_level: "low" },
+            "1111": { variant: "slider", color: "#22c55e", alert_type: "Casual", headline: "Poke", message: "No urgency. Head up when context switch permits.", urgency_level: "low" }
         };
 
         function pressKey(num) {
