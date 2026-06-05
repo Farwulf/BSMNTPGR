@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Secure Basement Terminal</title>
+    <style>
+        :root {
+            --bg-dark: #090a0f;
+            --panel-bg: #121420;
+            --key-bg: #1a1d30;
+            --text-main: #f1f3f9;
+            --text-muted: #525f7a;
+            --accent-blue: #3b82f6;
+            --accent-red: #ef4444;
+            --accent-orange: #f97316;
+            --accent-green: #22c55e;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .terminal-container {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 30px;
+            width: 100%;
+            max-width: 950px;
+            background-color: var(--panel-bg);
+            padding: 30px;
+            border-radius: 24px;
+            border: 1px solid #1e2238;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+
+        /* --- Left Side: Keypad & Directory --- */
+        .left-panel { display: flex; flex-direction: column; gap: 20px; }
+        .directory {
+            background: #171a2b;
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 4px solid var(--accent-blue);
+        }
+        .directory h3 { font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }
+        .directory ul { list-style: none; font-size: 0.95rem; display: flex; flex-direction: column; gap: 4px; }
+        .directory span { font-weight: bold; color: var(--text-main); margin-right: 8px; }
+
+        .code-display {
+            background-color: var(--bg-dark);
+            border: 2px solid #22263d;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            font-size: 2rem;
+            font-family: monospace;
+            letter-spacing: 4px;
+            height: 68px;
+            color: var(--accent-blue);
+        }
+
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        .key {
+            background-color: var(--key-bg);
+            border: none;
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 1.5rem;
+            font-weight: bold;
+            padding: 20px;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+        .key:active { background-color: #252a45; }
+        .key-clear { color: var(--accent-red); }
+
+        /* --- Right Side: Dynamic Verification Action Chamber --- */
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #171a2b;
+            border-radius: 16px;
+            padding: 4px;
+            border: 2px dashed #22263d;
+            position: relative;
+        }
+
+        .chamber-state {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            padding: 30px;
+            text-align: center;
+        }
+        .chamber-state.active { display: flex; }
+
+        .state-title { font-size: 1.4rem; font-weight: bold; margin-bottom: 8px; }
+        .state-desc { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 40px; }
+
+        /* Behavior Slider Interface */
+        .slider-container {
+            width: 100%;
+            max-width: 320px;
+            background: var(--bg-dark);
+            height: 60px;
+            border-radius: 30px;
+            position: relative;
+            padding: 5px;
+            border: 2px solid var(--accent-red);
+        }
+        .slider-input {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: pointer;
+            z-index: 5;
+        }
+        .slider-input::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 25px;
+            background: var(--accent-red);
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+        }
+        .slider-text {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: #4b5563;
+            left: 0;
+            top: 0;
+            pointer-events: none;
+        }
+
+        /* Behavior Charge/Hold Button Interface */
+        .hold-btn {
+            width: 160px;
+            height: 160px;
+            border-radius: 80px;
+            background-color: var(--bg-dark);
+            border: 4px solid var(--accent-orange);
+            color: var(--text-main);
+            font-weight: bold;
+            font-size: 1.1rem;
+            cursor: pointer;
+            position: relative;
+            outline: none;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(249, 115, 22, 0.1);
+        }
+        .hold-progress-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 0%;
+            background-color: rgba(249, 115, 22, 0.3);
+            transition: height 0.1s linear;
+            pointer-events: none;
+        }
+
+        /* Global Status Overlay */
+        .overlay {
+            position: fixed;
+            top:0; left:0; width:100vw; height:100vh;
+            background: rgba(9,10,15,0.95);
+            display:flex; flex-direction:column; justify-content:center; align-items:center;
+            z-index: 100; opacity:0; pointer-events:none; transition: opacity 0.3s;
+        }
+        .overlay.active { opacity:1; pointer-events:auto; }
+        .overlay-status { font-size: 1.5rem; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="terminal-container">
+        <div class="left-panel">
+            <div class="directory">
+                <h3>System Directives</h3>
+                <ul>
+                    <li><span>Code 11:</span> 🚨 Emergency Launch</li>
+                    <li><span>Code 22:</span> 🍔 Food Ready Notification</li>
+                    <li><span>Code 33:</span> 👋 Casual Check-in Alert</li>
+                </ul>
+            </div>
+            <div class="code-display" id="codeDisplay">---</div>
+            <div class="keypad">
+                <button class="key" onclick="pressKey('1')">1</button>
+                <button class="key" onclick="pressKey('2')">2</button>
+                <button class="key" onclick="pressKey('3')">3</button>
+                <button class="key" onclick="pressKey('4')">4</button>
+                <button class="key" onclick="pressKey('5')">5</button>
+                <button class="key" onclick="pressKey('6')">6</button>
+                <button class="key" onclick="pressKey('7')">7</button>
+                <button class="key" onclick="pressKey('8')">8</button>
+                <button class="key" onclick="pressKey('9')">9</button>
+                <button class="key key-clear" onclick="clearCode()">CLR</button>
+                <button class="key" onclick="pressKey('0')">0</button>
+                <button class="key" style="visibility:hidden;"></button>
+            </div>
+        </div>
+
+        <div class="right-panel" id="actionChamber">
+            <div class="chamber-state active" id="stateLocked">
+                <div style="font-size: 3rem; margin-bottom: 15px;">🔒</div>
+                <div class="state-title" style="color: var(--text-muted)">Terminal Locked</div>
+                <div class="state-desc">Input a valid instruction code on the left matrix to initiate gesture options.</div>
+            </div>
+
+            <div class="chamber-state" id="stateSlider">
+                <div class="state-title" style="color: var(--accent-red)">CRITICAL INITIATION</div>
+                <div class="state-desc">Slide completely to the right boundary edge to authorize deployment.</div>
+                <div class="slider-container">
+                    <div class="slider-text">SLIDE TO NOTIFY 🚨</div>
+                    <input type="range" min="0" max="100" value="0" class="slider-input" id="secureSlider" oninput="checkSlider(this)">
+                </div>
+            </div>
+
+            <div class="chamber-state" id="stateHold">
+                <div class="state-title" id="holdTitle" style="color: var(--accent-orange)">TRANSMISSION READY</div>
+                <div class="state-desc" id="holdDesc">Press and continuously hold down the module to generate connection profile.</div>
+                <button class="hold-btn" id="holdBtn" onmousedown="startHold()" onmouseup="endHold()" ontouchstart="startHold()" ontouchend= "endHold()">
+                    <div class="hold-progress-fill" id="progressFill"></div>
+                    <span id="holdBtnText">HOLD TO SEND</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="globalOverlay">
+        <div class="overlay-status" id="overlayStatus">Processing Link...</div>
+    </div>
+
+    <script>
+        // PASTE YOUR ZAPIER WEBHOOK URL HERE
+        const ZAPIER_WEBHOOK_URL = "https://hook.us1.make.com/swd272jcewo1ux7cae0sn8hnvc4iejr8";
+
+        let currentCode = "";
+        let holdTimer = null;
+        let holdProgress = 0;
+        let activePayload = null;
+
+        const systemRegistry = {
+            "11": { variant: "slider", alert_type: "Emergency", headline: "🚨 EMERGENCY ALERT", message: "Immediate crisis response required upstairs.", urgency_level: "high" },
+            "22": { variant: "hold", color: "#f97316", alert_type: "Food", headline: "🍔 FOOD DEPLOYED", message: "Kitchen deployment complete. Rations available.", urgency_level: "medium" },
+            "33": { variant: "hold", color: "#22c55e", alert_type: "Casual", headline: "👋 REQUEST SYNC", message: "No urgency. Head up when context switch permits.", urgency_level: "low" }
+        };
+
+        function pressKey(num) {
+            if (currentCode.length >= 4) return;
+            currentCode += num;
+            document.getElementById("codeDisplay").innerText = currentCode;
+            evaluateCode();
+        }
+
+        function clearCode() {
+            currentCode = "";
+            document.getElementById("codeDisplay").innerText = "---";
+            switchChamberState("stateLocked");
+            activePayload = null;
+        }
+
+        function evaluateCode() {
+            const target = systemRegistry[currentCode];
+            if (!target) {
+                switchChamberState("stateLocked");
+                return;
+            }
+
+            activePayload = target;
+
+            if (target.variant === "slider") {
+                document.getElementById("secureSlider").value = 0;
+                switchChamberState("stateSlider");
+            } else if (target.variant === "hold") {
+                // Update UI theme strings depending on payload selection
+                document.getElementById("holdTitle").style.color = target.color;
+                document.getElementById("holdBtn").style.borderColor = target.color;
+                document.getElementById("progressFill").style.backgroundColor = target.color + "4d"; // Add tracking hex transparency
+                switchChamberState("stateHold");
+            }
+        }
+
+        function switchChamberState(stateId) {
+            document.querySelectorAll('.chamber-state').forEach(el => el.classList.remove('active'));
+            document.getElementById(stateId).classList.add('active');
+        }
+
+        /* --- Slider Verification Logic --- */
+        function checkSlider(el) {
+            if (el.value >= 98) {
+                el.value = 100;
+                el.disabled = true; // Freeze interaction loop
+                dispatchPayload();
+            }
+        }
+
+        /* --- Hold Down Verification Logic --- */
+        function startHold() {
+            if (!activePayload) return;
+            holdProgress = 0;
+            document.getElementById("holdBtnText").innerText = "HOLDING...";
+            
+            holdTimer = setInterval(() => {
+                holdProgress += 5;
+                document.getElementById("progressFill").style.height = holdProgress + "%";
+                
+                if (holdProgress >= 100) {
+                    clearInterval(holdTimer);
+                    holdTimer = null;
+                    dispatchPayload();
+                }
+            }, 100); // 2 Seconds Total Duration Loop Window
+        }
+
+        function endHold() {
+            if (holdTimer) {
+                clearInterval(holdTimer);
+                holdTimer = null;
+                holdProgress = 0;
+                document.getElementById("progressFill").style.height = "0%";
+                document.getElementById("holdBtnText").innerText = "HOLD TO SEND";
+            }
+        }
+
+        /* --- Global Dispatch Payload Pipeline --- */
+        function dispatchPayload() {
+            const overlay = document.getElementById("globalOverlay");
+            const status = document.getElementById("overlayStatus");
+            
+            overlay.classList.add("active");
+            status.innerText = "Transmitting Waveform...";
+
+            const packet = {
+                station_id: "Secure Wall Panel",
+                timestamp: new Date().toISOString(),
+                alert_type: activePayload.alert_type,
+                headline: activePayload.headline,
+                message: activePayload.message,
+                urgency_level: activePayload.urgency_level
+            };
+
+            fetch(ZAPIER_WEBHOOK_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(packet)
+            })
+            .then(res => {
+                if (!res.ok) throw new Error();
+                status.innerText = "Dispatched Successfully! ✓";
+                setTimeout(() => {
+                    overlay.classList.remove("active");
+                    document.getElementById("secureSlider").disabled = false;
+                    clearCode();
+                }, 1500);
+            })
+            .catch(() => {
+                status.innerText = "Transmission Error ❌";
+                setTimeout(() => {
+                    overlay.classList.remove("active");
+                    document.getElementById("secureSlider").disabled = false;
+                    endHold();
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
